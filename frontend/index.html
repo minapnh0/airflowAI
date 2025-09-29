@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airflow DAG Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        .dag {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .dag:last-child {
+            border-bottom: none;
+        }
+        .dag button {
+            background: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .dag button:hover {
+            background: #0056b3;
+        }
+        .agent {
+            margin-top: 20px;
+        }
+        .agent textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        .agent button {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .agent button:hover {
+            background: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Airflow DAG Monitor</h1>
+
+        <div id="dags">
+            <!-- DAGs will be dynamically loaded here -->
+        </div>
+
+        <div class="agent">
+            <h2>Interact with Agent</h2>
+            <textarea id="agentCommand" placeholder="Enter command..."></textarea>
+            <button onclick="sendCommand()">Send Command</button>
+            <p id="agentResponse"></p>
+        </div>
+    </div>
+
+    <script>
+        async function fetchDags() {
+            const response = await fetch('/api/dags');
+            const dags = await response.json();
+            const dagContainer = document.getElementById('dags');
+            dagContainer.innerHTML = '<h2>Available DAGs</h2>';
+
+            dags.forEach(dag => {
+                const dagElement = document.createElement('div');
+                dagElement.className = 'dag';
+                dagElement.innerHTML = `
+                    <span>${dag.name} - ${dag.status}</span>
+                    <button onclick="triggerDag('${dag.name}')">Trigger</button>
+                `;
+                dagContainer.appendChild(dagElement);
+            });
+        }
+
+        async function triggerDag(dagName) {
+            const response = await fetch('/api/dags/trigger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dag_name: dagName })
+            });
+            const result = await response.json();
+            alert(result.message || result.error);
+            fetchDags();
+        }
+
+        async function sendCommand() {
+            const command = document.getElementById('agentCommand').value;
+            const response = await fetch('/api/agent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command })
+            });
+            const result = await response.json();
+            document.getElementById('agentResponse').innerText = result.response || result.error;
+        }
+
+        // Fetch DAGs on page load
+        fetchDags();
+    </script>
+</body>
+</html>
